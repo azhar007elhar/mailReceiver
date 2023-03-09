@@ -50,10 +50,14 @@ class MailReceiverController extends Controller
                 // $aMessage = $oFolder->messages()->all()->get();
 
                 // get unread messages 
-                $aMessage = $oFolder->search()->unseen()->get();
+                // $aMessage = $oFolder->search()->unseen()->get();
 
+                // get all messages 
+                $aMessage = $oFolder->search()->all()->get();
 
-                // dd($aMessage);
+                // get all messages with limite 
+                // $aMessage = $oFolder->search()->all()->limit(10)->get();
+
 
                 /** @var \Webklex\IMAP\Message $oMessage */
                 foreach ($aMessage as $oMessage) {
@@ -63,7 +67,7 @@ class MailReceiverController extends Controller
                         'Attachments Count' =>  $oMessage->getAttachments()->count(),
                         'Attachments' =>  $oMessage->getAttachments(),
                         'HTML Body' =>  $oMessage->getHTMLBody(true),
-                        'body' => $oMessage->getTextBody(),
+                        'body' => mb_decode_mimeheader($oMessage->getTextBody()),
                         'From' => $oMessage->getFrom()[0]->mail,
                     ];
                     array_push($results, $res);
@@ -80,13 +84,13 @@ class MailReceiverController extends Controller
                 }
             }
 
-            // $emails = array_reverse($results , true );
-            // Log::info(json_encode($emails));
-            return $results;
+            // reverse emails to desc 
+            return array_reverse($results);
         } catch (\Throwable $th) {
             //throw $th;
             Log::error($th->getMessage());
-            return $th->getMessage();
+            return response()->json(['message' => $th->getMessage()] , 401);
+            // return $th->getMessage();
         }
     }
 
