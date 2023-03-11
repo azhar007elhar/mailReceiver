@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use stdClass;
 use Webklex\IMAP\Facades\Client;
 
 class MailReceiverController extends Controller
@@ -21,13 +22,14 @@ class MailReceiverController extends Controller
             // $oClient = \Webklex\IMAP\Facades\Client::account('default');
             // $oClient = \Webklex\IMAP\Facades\Client::account('default');
 
+
             $options = [
-                'host'          => 'mail.crmdermafric.com',
+                'host'          => 'imap.gmail.com',
                 'port'          => 993,
                 'encryption'    => 'ssl',
                 'validate_cert' => true,
-                'username'      => 'support@crmdermafric.com',
-                'password'      => 'phTMhc@I=^uH',
+                'username'      => 'test@gmail.com',
+                'password'      => '',
                 'protocol'      => 'imap'
             ];
             $oClient = Client::make($options);
@@ -43,6 +45,7 @@ class MailReceiverController extends Controller
             //Loop through every Mailbox
             /** @var \Webklex\IMAP\Folder $oFolder */
             $results = [];
+            $filepath = '../../docs/';
             foreach ($aFolder as $oFolder) {
 
                 //Get all Messages of the current Mailbox $oFolder
@@ -53,7 +56,7 @@ class MailReceiverController extends Controller
                 // $aMessage = $oFolder->search()->unseen()->get();
 
                 // get all messages 
-                $aMessage = $oFolder->search()->all()->get();
+                $aMessage = $oFolder->search()->since('09.03.2023')->limit(100)->get();
 
                 // get all messages with limite 
                 // $aMessage = $oFolder->search()->all()->limit(10)->get();
@@ -61,19 +64,23 @@ class MailReceiverController extends Controller
 
                 /** @var \Webklex\IMAP\Message $oMessage */
                 foreach ($aMessage as $oMessage) {
+                    // foreach ($oMessage->getAttachments() as $key => $value) {
+                    //     $docName = $oMessage->uid . '_' . $value->getName() . '_' . time() . '.' . $value->getExtension();
+                    //     $value->save($filepath, $docName);
+                    // }
                     $res = (object) [
                         'uid' => $oMessage->uid,
                         'Subject' =>  mb_decode_mimeheader($oMessage->getSubject()),
-                        'Attachments Count' =>  $oMessage->getAttachments()->count(),
-                        'Attachments' =>  $oMessage->getAttachments(),
-                        'HTML Body' =>  $oMessage->getHTMLBody(true),
+                        // 'Attachments Count' =>  $oMessage->getAttachments()->count(),
+                        // 'Attachments' =>  $oMessage->getAttachments(),
+                        // 'HTML Body' =>  $oMessage->getHTMLBody(true),
                         'body' => mb_decode_mimeheader($oMessage->getTextBody()),
                         'From' => $oMessage->getFrom()[0]->mail,
+                        'Date' => $oMessage->getdate()[0],
                     ];
                     array_push($results, $res);
-                    // echo $oMessage->getSubject() . '<br />';
-                    // echo 'Attachments: ' . $oMessage->getAttachments()->count() . '<br />';
-                    // echo $oMessage->getHTMLBody(true);
+
+
 
                     //Move the current Message to 'INBOX.read'
                     // if ($oMessage->moveToFolder('INBOX.read') == true) {
@@ -83,13 +90,11 @@ class MailReceiverController extends Controller
                     // }
                 }
             }
-
             // reverse emails to desc 
             return array_reverse($results);
         } catch (\Throwable $th) {
-            //throw $th;
             Log::error($th->getMessage());
-            return response()->json(['message' => $th->getMessage()] , 401);
+            return response()->json(['message' => $th->getMessage()], 401);
             // return $th->getMessage();
         }
     }
